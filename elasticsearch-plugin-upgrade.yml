@@ -1,0 +1,38 @@
+- name: Elasticsearch plugin Installation
+  hosts: elastic
+  become: true
+  vars:
+    plugin_list : 
+      - mapper-size
+    elastic_home: /usr/share/elasticsearch
+    plugin_version: 7.17.5
+    
+  tasks:
+    
+    - name: list elasticsearch plugins installed
+      command: {{ elastic_home }}/bin/elasticsearch-plugin list
+      register: plugins_list
+      tags:
+        - es_plugin_upgrade
+    
+    - name: remove installed plugins
+      command: /usr/share/elasticsearchs/bin/elasticsearch-plugin remove {{ item }}
+      with_items:
+        - "{{ plugins_list.stdout }}"
+      tags:
+        - es_plugin_upgrade
+    
+    - name: download elasticsearch plugin 
+      ansible.builtin.get_url:
+        url: https://artifacts.elastic.co/downloads/elasticsearch-plugins/{{ item }}/{{ item }}-{{ plugin_version }}.zip
+        dest: {{ elastic_home }}
+      loop: "{{ plugin_list }}"
+      tags:
+        - es_plugin_upgrade
+    
+    - name: Install elasticsearch plugin 
+      command: {{ elastic_home }}/bin/elasticsearch-plugin install file:{{ elastic_home }}/{{ item }}-{{ plugin_version }}.zip
+      loop: "{{ plugin_list }}"
+      tags:
+        - es_plugin_upgrade
+    
